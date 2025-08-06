@@ -12,7 +12,10 @@ import {
     Users,
     Settings,
 } from 'lucide-react';
-const UserTable = ({ filteredUsers, currentUsers }) => {
+const UserTable = ({ filteredUsers = [],
+    currentUsers = [],
+    onRoleChange,
+    isLoading = false }) => {
     const formatDate = (date) => {
         const dateFormat = new Date(date);
         return new Intl.DateTimeFormat('es-ES', {
@@ -73,7 +76,7 @@ const UserTable = ({ filteredUsers, currentUsers }) => {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleRoleChange(user)}
+                                        onClick={() => onRoleChange(user)}
                                         className="flex items-center gap-2 text-primary hover:text-primary/80"
                                     >
                                         <Settings className="h-4 w-4" />
