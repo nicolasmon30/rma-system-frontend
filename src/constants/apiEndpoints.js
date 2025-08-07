@@ -10,9 +10,12 @@ export const API_ENDPOINTS = {
   },
   RMA:{
     CREATE:'/rma',
-    LIST:'/rma'
+    LIST:'/rma',
+    APPROVE: (rmaId) => `/rma/${rmaId}/approve`,
+    REJECT: (rmaId) => `/rma/${rmaId}/reject`
   },
   USERS:{
-    LIST: '/users'
+    LIST: '/users',
+    UPDATE_ROLE: (userId) => `/users/${userId}/role`
   }
 };

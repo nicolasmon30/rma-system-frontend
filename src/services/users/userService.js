@@ -35,6 +35,58 @@ class UserService {
     }
 
     /**
+ * ✅ NUEVO: Actualizar rol de un usuario
+ * @param {string} userId - ID del usuario a actualizar
+ * @param {string} newRole - Nuevo rol (USER, ADMIN, SUPERADMIN)
+ * @returns {Promise<Object>} Usuario actualizado
+ */
+    async updateUserRole(userId, newRole) {
+        try {
+            console.log(`🔄 Actualizando rol del usuario ${userId} a ${newRole}`);
+
+            // Validaciones básicas
+            if (!userId) {
+                throw new Error('ID de usuario es requerido');
+            }
+
+            if (!newRole) {
+                throw new Error('Nuevo rol es requerido');
+            }
+
+            const validRoles = ['USER', 'ADMIN', 'SUPERADMIN'];
+            if (!validRoles.includes(newRole)) {
+                throw new Error(`Rol no válido. Roles permitidos: ${validRoles.join(', ')}`);
+            }
+
+            // Realizar petición PUT
+            const response = await this.httpClient.put(
+                API_ENDPOINTS.USERS.UPDATE_ROLE(userId),
+                { role: newRole }
+            );
+
+            if (!response.success) {
+                throw new Error(response.message || 'Error al actualizar rol');
+            }
+
+            // Formatear usuario actualizado
+            const updatedUser = this.formatSingleUser(response.data);
+
+            console.log(`✅ Rol actualizado exitosamente: ${updatedUser.fullName} → ${newRole}`);
+
+            return {
+                success: true,
+                data: updatedUser,
+                message: response.message || `Rol actualizado exitosamente a ${newRole}`
+            };
+
+        } catch (error) {
+            console.error('❌ Error al actualizar rol:', error);
+            throw this.handleError(error);
+        }
+    }
+
+
+    /**
    * Limpiar parámetros undefined/null
    * @param {Object} params - Parámetros originales
    * @returns {Object} Parámetros limpiados
@@ -52,6 +104,26 @@ class UserService {
         });
 
         return cleaned;
+    }
+
+    /**
+       * ✅ NUEVO: Formatear un usuario individual
+       * @param {Object} user - Usuario del servidor
+       * @returns {Object} Usuario formateado
+       */
+    formatSingleUser(user) {
+        if (!user) return null;
+
+        return {
+            ...user,
+            countries: Array.isArray(user.countries) ? user.countries : [],
+            createdAt: new Date(user.createdAt),
+            updatedAt: new Date(user.updatedAt),
+            fullName: `${user.nombre} ${user.apellido}`,
+            countryNames: Array.isArray(user.countries)
+                ? user.countries.map(c => c.nombre).join(', ')
+                : ''
+        };
     }
 
     /**

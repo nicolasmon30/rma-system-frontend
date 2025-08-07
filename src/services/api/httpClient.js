@@ -55,6 +55,11 @@ export class HttpClient {
     return response.data;
   }
 
+  async patch(url, data = {}, config = {}) {
+    const response = await this.client.patch(url, data, config);
+    return response.data;
+  }
+
   async delete(url, config = {}) {
     const response = await this.client.delete(url, config);
     return response.data;

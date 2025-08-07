@@ -1,6 +1,6 @@
+// src/pages/UserPage.jsx
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Pagination,
   PaginationContent,
@@ -27,11 +27,6 @@ import {
 import {
   Settings,
   Loader2,
-  Users,
-  Search,
-  Filter,
-  X,
-  RefreshCw,
   Shield
 } from 'lucide-react';
 
@@ -39,6 +34,7 @@ import {
 import { UserHeader } from "../components/users/UserHeader";
 import UserStats from '../components/users/UserStats';
 import UserTable from '../components/users/UserTable';
+import UserSearchFilters from '../components/users/UserSearchFilters';
 
 // Hooks existentes
 import { usePermissions } from '../hooks/usePermissions';
@@ -46,21 +42,26 @@ import { useUsers } from '../hooks/users/useUsers';
 import { useDebounce } from '../hooks/useDebounce';
 import { ProtectedComponent } from '../components/layout/ProtectedComponent';
 import { UserRoleBadge } from '../components/users/UserRoleBadge';
+import { UserTableSkeleton } from '../components/common/LoadingStates';
+import { useUserRole } from '../hooks/users/useUserRole';
 
 const UserPage = () => {
   // Estados locales para filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [countryFilter, setCountryFilter] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL'); // Mantener para futuro uso
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Estados Update Role
+  const { updateRole, loading: isChangingRole } = useUserRole();
 
   // Estados locales para modal de cambio de rol
   const [selectedUser, setSelectedUser] = useState(null);
   const [isRoleChangeModalOpen, setIsRoleChangeModalOpen] = useState(false);
   const [newRole, setNewRole] = useState('USER');
-  const [isChangingRole, setIsChangingRole] = useState(false);
+  //const [isChangingRole, setIsChangingRole] = useState(false);
 
   // Permisos
   const { PERMISSIONS, can } = usePermissions();
@@ -91,44 +92,75 @@ const UserPage = () => {
     setCurrentPage(1);
   }, [searchTerm, roleFilter, countryFilter, statusFilter]);
 
-  // Obtener países únicos de los usuarios
+  // ✅ MEJORAR: Obtener países únicos de los usuarios con mejor manejo
   const availableCountries = useMemo(() => {
     const countryMap = new Map();
 
     users.forEach(user => {
-      user.countries?.forEach(country => {
-        if (!countryMap.has(country.id)) {
-          countryMap.set(country.id, country);
-        }
-      });
+      // Verificar si user.countries existe y es un array
+      if (user.countries && Array.isArray(user.countries)) {
+        user.countries.forEach(country => {
+          // Manejar tanto el formato directo como el formato con relación
+          const countryData = country.country || country;
+          if (countryData && countryData.id && !countryMap.has(countryData.id)) {
+            countryMap.set(countryData.id, {
+              id: countryData.id,
+              nombre: countryData.nombre
+            });
+          }
+        });
+      }
     });
 
-    return Array.from(countryMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    return Array.from(countryMap.values()).sort((a, b) =>
+      a.nombre.localeCompare(b.nombre)
+    );
   }, [users]);
 
-  // Filtrar usuarios localmente por estado
+  // ✅ CORREGIR: Filtrar usuarios localmente por TODOS los filtros
   const filteredUsers = useMemo(() => {
-    if (statusFilter === 'ALL') return users;
+    let result = [...users];
 
-    return users.filter(user => {
-      if (statusFilter === 'ACTIVE') return user.isActive;
-      if (statusFilter === 'INACTIVE') return !user.isActive;
-      return true;
-    });
-  }, [users, statusFilter]);
+    // ✅ NUEVO: Filtrar por país localmente si es necesario
+    // Nota: Este filtro local es adicional al filtro del servidor
+    // Solo se aplica si hay un filtro de país seleccionado
+    if (countryFilter !== 'ALL') {
+      result = result.filter(user => {
+        if (!user.countries || !Array.isArray(user.countries)) return false;
 
-  // Información de paginación
+        return user.countries.some(userCountry => {
+          const countryData = userCountry.country || userCountry;
+          return countryData && countryData.id === countryFilter;
+        });
+      });
+    }
+
+    // ✅ MANTENER: Filtrar por estado (para uso futuro)
+    if (statusFilter !== 'ALL') {
+      result = result.filter(user => {
+        if (statusFilter === 'ACTIVE') return user.isActive !== false; // Por defecto activo
+        if (statusFilter === 'INACTIVE') return user.isActive === false;
+        return true;
+      });
+    }
+
+    return result;
+  }, [users, countryFilter, statusFilter]);
+
+  // ✅ MEJORAR: Información de paginación basada en usuarios filtrados
   const paginationInfo = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
+    const totalFiltered = filteredUsers.length;
 
     return {
       startIndex,
       endIndex,
-      showingFrom: startIndex + 1,
-      showingTo: Math.min(endIndex, totalUsers)
+      showingFrom: Math.min(startIndex + 1, totalFiltered),
+      showingTo: Math.min(endIndex, totalFiltered),
+      totalFiltered
     };
-  }, [currentPage, itemsPerPage, totalUsers]);
+  }, [currentPage, itemsPerPage, filteredUsers.length]);
 
   // Verificar si hay filtros activos
   const hasActiveFilters = useMemo(() => {
@@ -138,7 +170,7 @@ const UserPage = () => {
       statusFilter !== 'ALL';
   }, [searchTerm, roleFilter, countryFilter, statusFilter]);
 
-  // Funciones de actualización de filtros
+  // Funciones de callback para UserSearchFilters
   const updateSearchTerm = useCallback((term) => {
     setSearchTerm(term);
     setCurrentPage(1);
@@ -190,6 +222,8 @@ const UserPage = () => {
     setIsRoleChangeModalOpen(true);
   }, []);
 
+
+
   /**
    * Confirmar cambio de rol
    */
@@ -197,13 +231,20 @@ const UserPage = () => {
     if (!selectedUser || !canChangeRoles) return;
 
     try {
-      setIsChangingRole(true);
+      //setIsChangingRole(true);
 
       // Aquí iría la llamada al servicio para cambiar el rol
       // await userService.changeUserRole(selectedUser.id, newRole);
 
-      // Por ahora simulamos el cambio localmente
       console.log(`Cambiando rol de ${selectedUser.nombre} ${selectedUser.apellido} a ${newRole}`);
+
+      const updatedUser = await updateRole(selectedUser.id, newRole, (user) => {
+        // Callback opcional: actualizar usuario en la lista local si tienes una
+        console.log('Usuario actualizado:', user);
+        // Aquí podrías actualizar el estado local de usuarios si lo manejas
+      });
+
+      console.log('✅ Cambio de rol exitoso:', updatedUser);
 
       // Cerrar modal y refrescar datos
       setIsRoleChangeModalOpen(false);
@@ -212,9 +253,6 @@ const UserPage = () => {
 
     } catch (error) {
       console.error('Error al cambiar rol:', error);
-      // Aquí podrías mostrar un toast o notificación de error
-    } finally {
-      setIsChangingRole(false);
     }
   }, [selectedUser, newRole, canChangeRoles, refresh]);
 
@@ -224,9 +262,10 @@ const UserPage = () => {
   const generatePageNumbers = useCallback(() => {
     const pages = [];
     const maxVisiblePages = 5;
+    const totalPagesCalculated = Math.ceil(filteredUsers.length / itemsPerPage);
 
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
+    if (totalPagesCalculated <= maxVisiblePages) {
+      for (let i = 1; i <= totalPagesCalculated; i++) {
         pages.push(i);
       }
     } else {
@@ -235,11 +274,11 @@ const UserPage = () => {
           pages.push(i);
         }
         pages.push('ellipsis');
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
+        pages.push(totalPagesCalculated);
+      } else if (currentPage >= totalPagesCalculated - 2) {
         pages.push(1);
         pages.push('ellipsis');
-        for (let i = totalPages - 3; i <= totalPages; i++) {
+        for (let i = totalPagesCalculated - 3; i <= totalPagesCalculated; i++) {
           pages.push(i);
         }
       } else {
@@ -249,33 +288,22 @@ const UserPage = () => {
           pages.push(i);
         }
         pages.push('ellipsis');
-        pages.push(totalPages);
+        pages.push(totalPagesCalculated);
       }
     }
 
     return pages;
-  }, [currentPage, totalPages]);
+  }, [currentPage, filteredUsers.length, itemsPerPage]);
 
-  // Opciones para selectores
-  const roleOptions = [
-    { value: 'ALL', label: 'Todos los Roles' },
-    { value: 'USER', label: 'Usuario' },
-    { value: 'ADMIN', label: 'Administrador' },
-    { value: 'SUPERADMIN', label: 'Super Admin' },
-  ];
+  // ✅ MEJORAR: Usuarios paginados localmente
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, currentPage, itemsPerPage]);
 
-  const statusOptions = [
-    { value: 'ALL', label: 'Todos los Estados' },
-    { value: 'ACTIVE', label: 'Activos' },
-    { value: 'INACTIVE', label: 'Inactivos' },
-  ];
-
-  const itemsPerPageOptions = [
-    { value: '5', label: '5' },
-    { value: '10', label: '10' },
-    { value: '20', label: '20' },
-    { value: '50', label: '50' },
-  ];
+  // Calcular total de páginas basado en usuarios filtrados
+  const totalPagesCalculated = Math.ceil(filteredUsers.length / itemsPerPage);
 
   // Opciones para el cambio de rol
   const roleChangeOptions = [
@@ -284,207 +312,51 @@ const UserPage = () => {
     { value: 'SUPERADMIN', label: 'Super Admin' },
   ];
 
-  // Mostrar error si existe
-  if (false) { // Cambiar por error cuando esté disponible
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Error al cargar usuarios</h2>
-          <p className="text-gray-600 mb-4">Error message here</p>
-          <Button onClick={refresh}>Intentar nuevamente</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       {/* Header */}
       <UserHeader />
 
-      {/* Filtros de búsqueda integrados */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="space-y-4">
-            {/* Primera fila: Búsqueda y acciones principales */}
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-              {/* Campo de búsqueda */}
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Buscar por nombre, email, empresa..."
-                  value={searchTerm}
-                  onChange={(e) => updateSearchTerm(e.target.value)}
-                  className="pl-10 pr-10"
-                  disabled={isLoading}
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => updateSearchTerm('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    disabled={isLoading}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+        <UserSearchFilters
+          // Valores actuales
+          searchTerm={searchTerm}
+          roleFilter={roleFilter}
+          countryFilter={countryFilter}
+          statusFilter={statusFilter}
+          itemsPerPage={itemsPerPage}
 
-              {/* Botones de acción */}
-              <div className="flex gap-2">
-                {hasActiveFilters && (
-                  <Button
-                    variant="outline"
-                    onClick={clearFilters}
-                    className="flex items-center gap-2"
-                    disabled={isLoading}
-                  >
-                    <X className="h-4 w-4" />
-                    Limpiar
-                  </Button>
-                )}
+          // Datos para opciones
+          countries={availableCountries}
 
-                <Button
-                  variant="outline"
-                  onClick={refresh}
-                  disabled={isLoading}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  Actualizar
-                </Button>
-              </div>
-            </div>
+          // Estados
+          isLoading={isLoading}
+          hasActiveFilters={hasActiveFilters}
 
-            {/* Segunda fila: Filtros específicos */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              {/* Filtro de rol */}
-              <div className="flex items-center gap-2 min-w-0">
-                <Filter className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                <Select
-                  value={roleFilter}
-                  onValueChange={updateRoleFilter}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roleOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          // Callbacks
+          onSearchChange={updateSearchTerm}
+          onRoleChange={updateRoleFilter}
+          onCountryChange={updateCountryFilter}
+          onStatusChange={updateStatusFilter}
+          onItemsPerPageChange={changeItemsPerPage}
+          onClearFilters={clearFilters}
+          onRefresh={refresh}
+        />
 
-              {/* Filtro de país */}
-              <div className="flex items-center gap-2 min-w-0">
-                <Select
-                  value={countryFilter}
-                  onValueChange={updateCountryFilter}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="País" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Todos los Países</SelectItem>
-                    {availableCountries.map((country) => (
-                      <SelectItem key={country.id} value={country.id}>
-                        {country.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        {/* Stats - usar usuarios filtrados */}
+        <UserStats users={filteredUsers} countries={availableCountries} />
 
-              {/* Filtro de estado */}
-              <div className="flex items-center gap-2 min-w-0">
-                <Select
-                  value={statusFilter}
-                  onValueChange={updateStatusFilter}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Items por página */}
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-sm text-gray-600 whitespace-nowrap">Mostrar:</span>
-                <Select
-                  value={itemsPerPage.toString()}
-                  onValueChange={(value) => changeItemsPerPage(Number(value))}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {itemsPerPageOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Indicador de filtros activos */}
-            {hasActiveFilters && (
-              <div className="pt-4 border-t border-gray-200">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Filter className="h-4 w-4" />
-                  <span>Filtros activos:</span>
-                  <div className="flex gap-2">
-                    {searchTerm && (
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                        Búsqueda: "{searchTerm}"
-                      </span>
-                    )}
-                    {roleFilter !== 'ALL' && (
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                        Rol: {roleOptions.find(r => r.value === roleFilter)?.label}
-                      </span>
-                    )}
-                    {countryFilter !== 'ALL' && (
-                      <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs">
-                        País: {availableCountries.find(c => c.id === countryFilter)?.nombre}
-                      </span>
-                    )}
-                    {statusFilter !== 'ALL' && (
-                      <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
-                        Estado: {statusOptions.find(s => s.value === statusFilter)?.label}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <UserStats users={users} countries={availableCountries} />
-
-        {/* Información de paginación */}
+        {/* ✅ MEJORAR: Información de paginación con datos correctos */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
               <p className="text-sm text-gray-600">
-                Mostrando {paginationInfo.showingFrom} a {paginationInfo.showingTo} de {totalUsers} usuarios
+                Mostrando {paginationInfo.showingFrom} a {paginationInfo.showingTo} de {paginationInfo.totalFiltered} usuarios
+                {hasActiveFilters && filteredUsers.length !== users.length && (
+                  <span className="text-gray-400 ml-1">
+                    (de {users.length} total)
+                  </span>
+                )}
               </p>
               {hasActiveFilters && (
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
@@ -492,9 +364,9 @@ const UserPage = () => {
                 </span>
               )}
             </div>
-            {totalPages > 1 && (
+            {totalPagesCalculated > 1 && (
               <div className="text-sm text-gray-600">
-                Página {currentPage} de {totalPages}
+                Página {currentPage} de {totalPagesCalculated}
               </div>
             )}
           </div>
@@ -503,24 +375,34 @@ const UserPage = () => {
 
       {/* Tabla de usuarios */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {isLoading ? (
-          <div className="bg-white rounded-lg shadow-sm p-8">
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-2 text-gray-600">Cargando usuarios...</span>
-            </div>
-          </div>
+        {isLoading && users.length === 0 ? (
+          // Skeleton loading para carga inicial
+          <UserTableSkeleton rows={itemsPerPage} />
         ) : (
-          <UserTable
-            filteredUsers={users}
-            currentUsers={users}
-            onRoleChange={canChangeRoles ? handleRoleChange : undefined}
-          />
+          // Tabla normal con overlay de loading para filtros
+          <div className="relative">
+            {/* Overlay de loading cuando se está filtrando */}
+            {isLoading && users.length > 0 && (
+              <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-sm text-gray-600">Actualizando...</span>
+                </div>
+              </div>
+            )}
+
+            <UserTable
+              filteredUsers={filteredUsers}
+              currentUsers={paginatedUsers}
+              onRoleChange={canChangeRoles ? handleRoleChange : undefined}
+              isLoading={isLoading}
+            />
+          </div>
         )}
       </div>
 
-      {/* Paginación */}
-      {totalPages > 1 && !isLoading && (
+      {/* ✅ MEJORAR: Paginación con cálculos correctos */}
+      {totalPagesCalculated > 1 && !isLoading && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
           <Pagination>
             <PaginationContent>
@@ -562,20 +444,17 @@ const UserPage = () => {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    if (currentPage < totalPages) {
+                    if (currentPage < totalPagesCalculated) {
                       changePage(currentPage + 1);
                     }
                   }}
-                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  className={currentPage === totalPagesCalculated ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                 />
               </PaginationItem>
             </PaginationContent>
           </Pagination>
         </div>
       )}
-
-
-      {/* Modal de cambio de rol */}
 
       {/* Modal de cambio de rol */}
       <ProtectedComponent permission={PERMISSIONS.USER.MANAGE_ROLES}>
@@ -664,7 +543,6 @@ const UserPage = () => {
           </DialogContent>
         </Dialog>
       </ProtectedComponent>
-
     </>
   );
 };

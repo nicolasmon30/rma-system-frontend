@@ -1,42 +1,85 @@
 import { useState, useEffect } from 'react';
 import { rmaListService } from '../../services/rma/listService';
+import { rmaStatusService } from '../../services/rma/statusService';
 
 export function useRma() {
-  const [rmas, setRmas] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({
-    status: '',
-    startDate: null,
-    endDate: null
-  });
-  const rmaListServices = rmaListService(import.meta.env.VITE_API_BASE_URL);
+    const [rmas, setRmas] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [filters, setFilters] = useState({
+        status: '',
+        startDate: null,
+        endDate: null
+    });
+    const rmaListServices = rmaListService(import.meta.env.VITE_API_BASE_URL);
+    const rmaStatusServices = rmaStatusService(import.meta.env.VITE_API_BASE_URL);
 
-  const fetchRmas = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await rmaListServices.getAll(filters);
-      console.log(response , Object.keys(response).length === 0)
-      if (response) {
-        setRmas(response);
-      } else {
-        throw new Error(response.message || 'Error al cargar rmas');
-      }
-    } catch (err) {
-      setError(err.message);
-      console.error('Error fetching rmas:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  const addRma = (newRma) => {
-    setRmas(prev => [newRma, ...prev]); 
-  };
-  useEffect(() => {
-    fetchRmas();
-  }, []);
+    const fetchRmas = async () => {
+        setLoading(true);
+        setError(null);
 
-  return { rmas, loading, error, addRma };
+        try {
+            const response = await rmaListServices.getAll(filters);
+            console.log(response, Object.keys(response).length === 0)
+            if (response) {
+                setRmas(response);
+            } else {
+                throw new Error(response.message || 'Error al cargar rmas');
+            }
+        } catch (err) {
+            setError(err.message);
+            console.error('Error fetching rmas:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+    const addRma = (newRma) => {
+        setRmas(prev => [newRma, ...prev]);
+    };
+    const updateRmaStatus = (rmaId, newStatus, trackingNumber = null, rejectionReason = null) => {
+        setRmas(prev => prev.map(rma => {
+            if (rma.id === rmaId) {
+                return {
+                    ...rma,
+                    status: newStatus,
+                    ...(trackingNumber && { numeroTracking: trackingNumber }),
+                    ...(rejectionReason && { razonRechazo: rejectionReason })
+                };
+            }
+            return rma;
+        }));
+    };
+
+    const approveRma = async (rmaId) => {
+        try {
+            setLoading(true);
+            const updatedRma = await rmaStatusServices.approveRma(rmaId);
+            updateRmaStatus(rmaId, 'AWAITING_GOODS', updatedRma.numeroTracking);
+            return updatedRma;
+        } catch (error) {
+            setError(error.message);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const rejectRma = async (rmaId, rejectionReason) => {
+        try {
+            setLoading(true);
+            const updatedRma = await rmaStatusServices.rejectRma(rmaId, rejectionReason);
+            updateRmaStatus(rmaId, 'REJECTED', null, rejectionReason);
+            return updatedRma;
+        } catch (error) {
+            setError(error.message);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+    useEffect(() => {
+        fetchRmas();
+    }, []);
+
+    return { rmas, loading, error, addRma, approveRma, rejectRma, fetchRmas };
 }

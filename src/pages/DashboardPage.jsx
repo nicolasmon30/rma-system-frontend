@@ -17,7 +17,8 @@ export function DashboardPage() {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const rmaService = createRmaService(import.meta.env.VITE_API_BASE_URL);
-  const { rmas , loading , error, addRma } = useRma()
+
+  const { rmas , loading , error, addRma, approveRma , rejectRma } = useRma()
 
   const filteredRMAs = rmas.filter((rma) => {
     const matchesSearch = rma.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,7 +73,7 @@ export function DashboardPage() {
       <RmaList startIndex={startIndex} endIndex={endIndex} totalItems={totalItems} totalPages={totalPages} currentPage={currentPage} />
 
       {/* RMA Table */}
-      <RmaTable rmas={rmas} user={user} />
+      <RmaTable rmas={rmas} user={user} loading={loading} onApprove={approveRma} onReject={rejectRma} />
       {/* Create RMA Modal */}
       <CreateRMAModal
         open={isCreateModalOpen}

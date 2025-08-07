@@ -1,3 +1,4 @@
+// src/components/users/UserSearchFilters.jsx
 import React, { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,26 +11,46 @@ import {
 } from '@/components/ui/select';
 import { Search, Filter, X, RefreshCw } from 'lucide-react';
 
+import { usePermissions } from '../../hooks/usePermissions';
+import { ProtectedComponent } from '../layout/ProtectedComponent';
+
 /**
  * Componente de filtros de búsqueda para usuarios
  * Memoizado para evitar re-renders innecesarios
+ * 
+ * @param {Object} props - Props del componente
+ * @param {string} props.searchTerm - Término de búsqueda actual
+ * @param {string} props.roleFilter - Filtro de rol actual
+ * @param {string} props.countryFilter - Filtro de país actual
+ * @param {string} props.statusFilter - Filtro de estado actual
+ * @param {number} props.itemsPerPage - Items por página
+ * @param {Array} props.countries - Lista de países disponibles
+ * @param {boolean} props.isLoading - Estado de carga
+ * @param {boolean} props.hasActiveFilters - Si hay filtros activos
+ * @param {Function} props.onSearchChange - Callback para cambio de búsqueda
+ * @param {Function} props.onRoleChange - Callback para cambio de rol
+ * @param {Function} props.onCountryChange - Callback para cambio de país
+ * @param {Function} props.onStatusChange - Callback para cambio de estado
+ * @param {Function} props.onItemsPerPageChange - Callback para cambio de items por página
+ * @param {Function} props.onClearFilters - Callback para limpiar filtros
+ * @param {Function} props.onRefresh - Callback para refrescar datos
  */
 const UserSearchFilters = memo(({
   // Valores actuales
-  searchTerm,
-  roleFilter,
-  countryFilter,
-  statusFilter,
-  itemsPerPage,
+  searchTerm = '',
+  roleFilter = 'ALL',
+  countryFilter = 'ALL',
+  statusFilter = 'ALL',
+  itemsPerPage = 10,
   
   // Datos para opciones
   countries = [],
   
   // Estados
-  isLoading,
-  hasActiveFilters,
+  isLoading = false,
+  hasActiveFilters = false,
   
-  // Callbacks
+  // Callbacks - ✅ AGREGAR VALIDACIONES DE FUNCIONES
   onSearchChange,
   onRoleChange,
   onCountryChange,
@@ -39,6 +60,9 @@ const UserSearchFilters = memo(({
   onRefresh
 }) => {
   // Opciones de roles
+
+  const { PERMISSIONS } = usePermissions();
+
   const roleOptions = [
     { value: 'ALL', label: 'Todos los Roles' },
     { value: 'USER', label: 'Usuario' },
@@ -73,15 +97,16 @@ const UserSearchFilters = memo(({
               type="text"
               placeholder="Buscar por nombre, email, empresa..."
               value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
               className="pl-10 pr-10"
               disabled={isLoading}
             />
             {searchTerm && (
               <button
-                onClick={() => onSearchChange('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                onClick={() => onSearchChange && onSearchChange('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 disabled={isLoading}
+                type="button"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -96,6 +121,7 @@ const UserSearchFilters = memo(({
                 onClick={onClearFilters}
                 className="flex items-center gap-2"
                 disabled={isLoading}
+                type="button"
               >
                 <X className="h-4 w-4" />
                 Limpiar
@@ -107,6 +133,7 @@ const UserSearchFilters = memo(({
               onClick={onRefresh}
               disabled={isLoading}
               className="flex items-center gap-2"
+              type="button"
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Actualizar
@@ -116,74 +143,56 @@ const UserSearchFilters = memo(({
 
         {/* Segunda fila: Filtros específicos */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          {/* Filtro de rol */}
-          <div className="flex items-center gap-2 min-w-0">
-            <Filter className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <Select 
-              value={roleFilter} 
-              onValueChange={onRoleChange}
-              disabled={isLoading}
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {roleOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <ProtectedComponent permission={PERMISSIONS.USER.MANAGE_ROLES}>
 
-          {/* Filtro de país */}
-          <div className="flex items-center gap-2 min-w-0">
-            <Select 
-              value={countryFilter} 
-              onValueChange={onCountryChange}
-              disabled={isLoading}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="País" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Todos los Países</SelectItem>
-                {countries.map((country) => (
-                  <SelectItem key={country.id} value={country.id}>
-                    {country.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            {/* Filtro de rol */}
+            <div className="flex items-center gap-2 min-w-0">
+              <Filter className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <Select 
+                value={roleFilter} 
+                onValueChange={onRoleChange}
+                disabled={isLoading}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Filtro de estado */}
-          <div className="flex items-center gap-2 min-w-0">
-            <Select 
-              value={statusFilter} 
-              onValueChange={onStatusChange}
-              disabled={isLoading}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
+            {/* Filtro de país */}
+            <div className="flex items-center gap-2 min-w-0">
+              <Select 
+                value={countryFilter} 
+                onValueChange={onCountryChange}
+                disabled={isLoading}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="País" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos los Países</SelectItem>
+                  {countries.map((country) => (
+                    <SelectItem key={country.id} value={country.id}>
+                      {country.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </ProtectedComponent>
           {/* Items por página */}
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-sm text-gray-600 whitespace-nowrap">Mostrar:</span>
             <Select
               value={itemsPerPage.toString()}
-              onValueChange={(value) => onItemsPerPageChange(Number(value))}
+              onValueChange={(value) => onItemsPerPageChange && onItemsPerPageChange(Number(value))}
               disabled={isLoading}
             >
               <SelectTrigger className="w-20">
@@ -207,7 +216,7 @@ const UserSearchFilters = memo(({
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Filter className="h-4 w-4" />
             <span>Filtros activos:</span>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {searchTerm && (
                 <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
                   Búsqueda: "{searchTerm}"
@@ -236,6 +245,8 @@ const UserSearchFilters = memo(({
   );
 });
 
+// ✅ IMPORTANTE: Asignar displayName para debugging
 UserSearchFilters.displayName = 'UserSearchFilters';
 
+// ✅ IMPORTANTE: Export default
 export default UserSearchFilters;
