@@ -12,7 +12,8 @@ export const API_ENDPOINTS = {
     CREATE:'/rma',
     LIST:'/rma',
     APPROVE: (rmaId) => `/rma/${rmaId}/approve`,
-    REJECT: (rmaId) => `/rma/${rmaId}/reject`
+    REJECT: (rmaId) => `/rma/${rmaId}/reject`,
+    MARK_EVALUATING: (rmaId) => `/rma/${rmaId}/mark-evaluating`
   },
   USERS:{
     LIST: '/users',

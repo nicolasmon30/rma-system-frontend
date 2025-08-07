@@ -29,6 +29,17 @@ export class RmaStatusService {
         }
     }
 
+    async markAsEvaluating(rmaId) {
+        try {
+            const response = await this.httpClient.patch(
+                `${API_ENDPOINTS.RMA.MARK_EVALUATING(rmaId)}`
+            );
+            return this.handleResponse(response);
+        } catch (error) {
+            throw this.handleError(error);
+        }
+    }
+
     handleResponse(response) {
         if (!response.success) {
             throw new Error(response.message || "Failed to update RMA status");

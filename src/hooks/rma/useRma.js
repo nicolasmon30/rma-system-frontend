@@ -77,9 +77,23 @@ export function useRma() {
             setLoading(false);
         }
     };
+
+    const markAsEvaluating = async (rmaId) => {
+        try {
+            setLoading(true);
+            const updatedRma = await rmaStatusServices.markAsEvaluating(rmaId);
+            updateRmaStatus(rmaId, 'EVALUATING');
+            return updatedRma;
+        } catch (error) {
+            setError(error.message);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
     useEffect(() => {
         fetchRmas();
     }, []);
 
-    return { rmas, loading, error, addRma, approveRma, rejectRma, fetchRmas };
+    return { rmas, loading, error, addRma, approveRma, rejectRma, fetchRmas, markAsEvaluating };
 }

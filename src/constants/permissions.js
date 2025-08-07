@@ -13,8 +13,7 @@ export const PERMISSIONS = {
     UPDATE_ALL: 'rma:update_all',
     DELETE: 'rma:delete',
     CHANGE_STATUS: 'rma:change_status',
-    ASSIGN_TRACKING: 'rma:assign_tracking',
-    ADD_EVALUATION: 'rma:add_evaluation',
+    MANAGE_INVOICE: 'rma:manage_invoice',
     MANAGE_QUOTES: 'rma:manage_quotes'
   },
 
@@ -76,8 +75,7 @@ const ADMIN_ADDITIONAL_PERMISSIONS = [
   PERMISSIONS.RMA.READ_ALL,
   PERMISSIONS.RMA.UPDATE_ALL,
   PERMISSIONS.RMA.CHANGE_STATUS,
-  PERMISSIONS.RMA.ASSIGN_TRACKING,
-  PERMISSIONS.RMA.ADD_EVALUATION,
+  PERMISSIONS.RMA.MANAGE_INVOICE,
   PERMISSIONS.RMA.MANAGE_QUOTES,
   
   // Usuarios - Puede gestionar usuarios

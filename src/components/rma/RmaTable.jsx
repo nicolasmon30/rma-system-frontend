@@ -10,17 +10,19 @@ import {
 import { StatusBadge } from '../rma/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { RMADetailModal } from "./RMADetailModal";
-import { Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Settings } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { ProtectedComponent } from '../layout/ProtectedComponent';
 import RmaRejectModal from './RmaRejectModal';
+import { RmaStatusManagerModal } from './RmaStatusManagerModal';
 
 
-const RmaTable = ({ rmas, user, onApprove, onReject, loading }) => {
+const RmaTable = ({ rmas, user, onApprove, onReject, loading, onStatusUpdate }) => {
     console.log("user of table", user, rmas)
+    const { PERMISSIONS } = usePermissions();
     const [selectedRMA, setSelectedRMA] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { PERMISSIONS } = usePermissions();
+    const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
     const [rmaToReject, setRmaToReject] = useState(null);
 
     const formatDate = (date) => {
@@ -60,6 +62,12 @@ const RmaTable = ({ rmas, user, onApprove, onReject, loading }) => {
             console.error('Error rejecting RMA:', error);
             // Mostrar error al usuario
         }
+    };
+
+    const handleAdminManage = (rma) => {
+        console.log(rma)
+        setSelectedRMA(rma);
+        setIsAdminModalOpen(true);
     };
 
     return (
@@ -140,6 +148,22 @@ const RmaTable = ({ rmas, user, onApprove, onReject, loading }) => {
                                                 <Eye className="h-4 w-4" />
                                                 Ver Detalles
                                             </Button>
+                                            {
+                                                rma.status != 'REJECTED' && (
+                                                    <ProtectedComponent permission={PERMISSIONS.RMA.CHANGE_STATUS}>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleAdminManage(rma)}
+                                                            className="flex items-center gap-2 text-primary hover:text-primary/80"
+                                                        >
+                                                            <Settings className="h-4 w-4" />
+                                                            Gestionar
+                                                        </Button>
+
+                                                    </ProtectedComponent>
+                                                )
+                                            }
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -160,6 +184,14 @@ const RmaTable = ({ rmas, user, onApprove, onReject, loading }) => {
                 onOpenChange={(open) => !open && setRmaToReject(null)}
                 onConfirm={handleRejectConfirm}
                 loading={loading}
+            />
+
+            {/* Modal Change Status */}
+            <RmaStatusManagerModal
+                rma={selectedRMA}
+                open={isAdminModalOpen}
+                onOpenChange={setIsAdminModalOpen}
+                onStatusUpdate={onStatusUpdate}
             />
         </>
     )

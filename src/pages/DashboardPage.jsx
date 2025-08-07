@@ -18,7 +18,7 @@ export function DashboardPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const rmaService = createRmaService(import.meta.env.VITE_API_BASE_URL);
 
-  const { rmas , loading , error, addRma, approveRma , rejectRma } = useRma()
+  const { rmas, loading, error, addRma, approveRma, rejectRma, markAsEvaluating } = useRma()
 
   const filteredRMAs = rmas.filter((rma) => {
     const matchesSearch = rma.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -37,6 +37,16 @@ export function DashboardPage() {
   const endIndex = startIndex + itemsPerPage;
   const currentRMAs = filteredRMAs.slice(startIndex, endIndex);
 
+  const handleStatusUpdate = async (rmaId, newStatus) => {
+    switch (newStatus) {
+      case 'EVALUATING':
+        return markAsEvaluating(rmaId);
+      // Puedes añadir más casos para otros estados aquí
+      default:
+        throw new Error(`Status transition not implemented: ${newStatus}`);
+    }
+  };
+
   return (
     <div className="flex-1 font-poppins">
       <div className="bg-[#0D2941] shadow-sm">
@@ -47,7 +57,7 @@ export function DashboardPage() {
               <p className="text-gray-300 mt-1">Gestión de solicitudes de autorización de devolución</p>
             </div>
             <div>
-              <Button 
+              <Button
                 onClick={() => setIsCreateModalOpen(true)}
                 className="bg-primary hover:bg-primary/90 flex items-center gap-2"
               >
@@ -73,7 +83,7 @@ export function DashboardPage() {
       <RmaList startIndex={startIndex} endIndex={endIndex} totalItems={totalItems} totalPages={totalPages} currentPage={currentPage} />
 
       {/* RMA Table */}
-      <RmaTable rmas={rmas} user={user} loading={loading} onApprove={approveRma} onReject={rejectRma} />
+      <RmaTable rmas={rmas} user={user} loading={loading} onApprove={approveRma} onReject={rejectRma} onStatusUpdate={handleStatusUpdate} />
       {/* Create RMA Modal */}
       <CreateRMAModal
         open={isCreateModalOpen}
