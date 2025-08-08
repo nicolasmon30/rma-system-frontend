@@ -34,6 +34,15 @@ export const API_ENDPOINTS = {
     DELETE: (brandId) => `/brands/${brandId}`,
     SEARCH: '/brands/search',
     STATS: '/brands/stats'
+  },
+  PRODUCT:{
+    LIST: '/products',
+    CREATE: '/products',
+    GET_BY_ID: (productId) => `/products/${productId}`,
+    UPDATE: (productId) => `/products/${productId}`,
+    DELETE: (productId) => `/products/${productId}`,
+    SEARCH: '/products/search',
+    STATS: '/products/stats'
   }
 
 };

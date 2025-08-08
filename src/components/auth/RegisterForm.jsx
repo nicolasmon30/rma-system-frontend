@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth/AuthContext';
 import { useFormValidation } from '../../hooks/useFormValidation';
@@ -14,8 +15,8 @@ import { AlertCircle, BriefcaseBusiness, Globe, Lock, Mail, MapPin, Phone, User 
 export function RegisterForm() {
   const navigate = useNavigate();
   const { register, isLoading, error, clearError } = useAuth();
-  const { countries, loading: countriesLoading } = useCountries();
-  
+  const { countries, loading: countriesLoading, fetchCountries } = useCountries();
+
   const {
     values,
     errors,
@@ -38,6 +39,10 @@ export function RegisterForm() {
     },
     REGISTER_VALIDATION_RULES
   );
+
+  useEffect(() => {
+    fetchCountries()
+  }, []);
 
   const onSubmit = async (formValues) => {
     try {
@@ -73,7 +78,7 @@ export function RegisterForm() {
                 Completa el formulario para registrarte en nuestra plataforma
               </p>
             </div>
-            <form 
+            <form
               className="px-8 pb-8"
               onSubmit={(e) => {
                 e.preventDefault();
@@ -190,7 +195,7 @@ export function RegisterForm() {
               </div>
 
               <div className="form-section mb-4">
-                
+
                 <FormField
                   label="Empresa"
                   name="empresa"
@@ -236,8 +241,8 @@ export function RegisterForm() {
               <div className="text-center pt-4 border-t mt-8">
                 <p className="text-sm text-muted-foreground">
                   ¿Ya tienes una cuenta?{' '}
-                  <Link 
-                    to={ROUTES.LOGIN} 
+                  <Link
+                    to={ROUTES.LOGIN}
                     className="font-medium registerLink hover:underline"
                   >
                     Iniciar sesión
