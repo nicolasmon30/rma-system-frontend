@@ -25,5 +25,15 @@ export const API_ENDPOINTS = {
   USERS:{
     LIST: '/users',
     UPDATE_ROLE: (userId) => `/users/${userId}/role`
+  },
+  BRAND:{
+    LIST: '/brands',
+    CREATE: '/brands',
+    GET_BY_ID: (brandId) => `/brands/${brandId}`,
+    UPDATE: (brandId) => `/brands/${brandId}`,
+    DELETE: (brandId) => `/brands/${brandId}`,
+    SEARCH: '/brands/search',
+    STATS: '/brands/stats'
   }
+
 };

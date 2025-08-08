@@ -17,6 +17,7 @@ import { PasswordPage } from '../pages/PasswordPage';
 import { AppInitializer } from '../components/layout/AppInitializer';
 import UserPage from '../pages/UserPage';
 import { CountryPage } from '../pages/CountryPage';
+import { BrandPage } from '../pages/BrandPage';
 
 export function AppRouter() {
   return (
@@ -45,6 +46,18 @@ export function AppRouter() {
               <Route path="password" element={<PasswordPage />} />
               
               {/* User Management - Solo ADMIN y SUPERADMIN */}
+              <Route
+                path='brand'
+                element={
+                  <ProtectedRoute
+                    permission={PERMISSIONS.BRAND.READ}
+                    anyRoles={['ADMIN', 'SUPERADMIN']}
+                  >
+                    <BrandPage/>
+                  </ProtectedRoute>
+                }
+              
+              />
               <Route 
                 path='countries' 
                 element={ 
