@@ -18,7 +18,7 @@ import { RmaStatusManagerModal } from './RmaStatusManagerModal';
 
 
 const RmaTable = ({ rmas, user, onApprove, onReject, loading, onStatusUpdate }) => {
-    console.log("user of table", user, rmas)
+    console.log("user of table", user, rmas, onStatusUpdate)
     const { PERMISSIONS } = usePermissions();
     const [selectedRMA, setSelectedRMA] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -149,7 +149,7 @@ const RmaTable = ({ rmas, user, onApprove, onReject, loading, onStatusUpdate }) 
                                                 Ver Detalles
                                             </Button>
                                             {
-                                                rma.status != 'REJECTED' && (
+                                                rma.status != 'REJECTED' && rma.status != 'COMPLETE' && (
                                                     <ProtectedComponent permission={PERMISSIONS.RMA.CHANGE_STATUS}>
                                                         <Button
                                                             variant="outline"

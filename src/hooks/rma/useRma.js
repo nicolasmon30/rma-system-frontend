@@ -36,14 +36,14 @@ export function useRma() {
     const addRma = (newRma) => {
         setRmas(prev => [newRma, ...prev]);
     };
-    const updateRmaStatus = (rmaId, newStatus, trackingNumber = null, rejectionReason = null) => {
+    const updateRmaStatus = (rmaId, newStatus, rejectionReason = null, trackingInformation = null) => {
         setRmas(prev => prev.map(rma => {
             if (rma.id === rmaId) {
                 return {
                     ...rma,
                     status: newStatus,
-                    ...(trackingNumber && { numeroTracking: trackingNumber }),
-                    ...(rejectionReason && { razonRechazo: rejectionReason })
+                    ...(rejectionReason && { razonRechazo: rejectionReason }),
+                    ...(trackingInformation && { trackingInformation: trackingInformation })
                 };
             }
             return rma;
@@ -125,9 +125,41 @@ export function useRma() {
         }
     };
 
+    const markAsInShipping = async (rmaId, trackingInformation) => {
+        console.log("hook shipping", rmaId, trackingInformation)
+        try {
+            setLoading(true);
+            const updatedRma = await rmaStatusServices.markAsInShipping(rmaId, trackingInformation);
+            updateRmaStatus(rmaId, 'IN_SHIPPING', null, trackingInformation);
+            return updatedRma;
+        } catch (error) {
+            setError(error.message);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const markAsComplete = async (rmaId) => {
+        console.log("useRma markAsComplete called:", { rmaId });
+
+        try {
+            setLoading(true);
+            const updatedRma = await rmaStatusServices.markAsComplete(rmaId);
+            updateRmaStatus(rmaId, 'COMPLETE');
+            return updatedRma;
+        } catch (error) {
+            console.error("Error en useRma markAsComplete:", error);
+            setError(error.message);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchRmas();
     }, []);
 
-    return { rmas, loading, error, addRma, approveRma, rejectRma, fetchRmas, markAsEvaluating, markAsPayment, markAsProcessing };
+    return { rmas, loading, error, addRma, approveRma, rejectRma, fetchRmas, markAsEvaluating, markAsPayment, markAsProcessing, markAsInShipping, markAsComplete };
 }

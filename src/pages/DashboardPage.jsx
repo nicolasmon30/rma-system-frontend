@@ -18,7 +18,7 @@ export function DashboardPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const rmaService = createRmaService(import.meta.env.VITE_API_BASE_URL);
 
-  const { rmas, loading, error, addRma, approveRma, rejectRma, markAsEvaluating, markAsPayment, markAsProcessing } = useRma()
+  const { rmas, loading, error, addRma, approveRma, rejectRma, markAsEvaluating, markAsPayment, markAsProcessing, markAsInShipping, markAsComplete } = useRma()
 
   const filteredRMAs = rmas.filter((rma) => {
     const matchesSearch = rma.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -37,14 +37,23 @@ export function DashboardPage() {
   const endIndex = startIndex + itemsPerPage;
   const currentRMAs = filteredRMAs.slice(startIndex, endIndex);
 
-  const handleStatusUpdate = async (rmaId, newStatus, file) => {
+  const handleStatusUpdate = async (rmaId, newStatus, file, trackingInformation) => {
+    console.log("handStatus", trackingInformation)
     switch (newStatus) {
       case 'EVALUATING':
         return markAsEvaluating(rmaId);
       case 'PAYMENT':
           return markAsPayment(rmaId, file);
       case 'PROCESSING':
-          return markAsProcessing(rmaId, file);
+          return markAsProcessing(rmaId);
+      case 'IN_SHIPPING':
+          if (!trackingInformation || trackingInformation.trim() === '') {
+                throw new Error('Información de tracking requerida para IN_SHIPPING');
+            }
+            console.log("Enviando a markAsInShipping:", rmaId, trackingInformation);
+            return markAsInShipping(rmaId, trackingInformation);
+      case 'COMPLETE': // ✅ NUEVO CASE
+            return markAsComplete(rmaId);
       // Puedes añadir más casos para otros estados aquí
       default:
         throw new Error(`Status transition not implemented: ${newStatus}`);

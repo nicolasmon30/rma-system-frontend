@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 //import { Textarea } from '@/components/ui/textarea';
 import {
     Dialog,
@@ -26,11 +27,12 @@ import {
 import { StatusBadge } from './StatusBadge';
 
 export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate }) => {
-    console.log(rma)
+    console.log(onStatusUpdate)
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [nextStatus, setNextStatus] = useState(null);
     const [quoteFile, setQuoteFile] = useState(null);
     const [confirmationData, setConfirmationData] = useState({});
+    const [trackingInformation, settrackingInformation] = useState('');
 
     const getStatusLabel = (status) => {
         const labels = {
@@ -82,7 +84,7 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
             case 'PAYMENT':
                 return nextStatus === 'PROCESSING';
             case 'PROCESSING':
-                return nextStatus === 'IN_SHIPPING' ;
+                return nextStatus === 'IN_SHIPPING' ? 'trackingInformation' : null ;
             default:
                 return null;
         }
@@ -102,8 +104,17 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
         if (requirement === 'cotizacion' && quoteFile) {
             data.cotizacion = {
                 filename: quoteFile.name,
-                url:quoteFile
+                url: quoteFile
             };
+        }
+
+        if (requirement === 'trackingInformation' && !trackingInformation.trim()) {
+            alert('Por favor, ingrese la información de tracking antes de continuar.');
+            return;
+        }
+
+        if (requirement === 'trackingInformation' && trackingInformation.trim()) {
+            data.trackingInformation = trackingInformation;
         }
 
         setNextStatus(next);
@@ -118,6 +129,9 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
             if (nextStatus === 'PAYMENT' && confirmationData.cotizacion) {
                 await onStatusUpdate(rma.id, nextStatus, confirmationData.cotizacion.url);
                 setQuoteFile(null);
+            } else if(nextStatus === 'IN_SHIPPING' && confirmationData.trackingInformation) {
+                console.log("uujjjjjjj", confirmationData.trackingInformation)
+                await onStatusUpdate(rma.id, nextStatus,  null ,confirmationData.trackingInformation);
             } else {
                 await onStatusUpdate(rma.id, nextStatus);
             }
@@ -128,8 +142,9 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
         } finally {
             setShowConfirmation(false);
             setNextStatus(null);
+            setConfirmationData({});
+            settrackingInformation(''); // ✅ Limpiar el campo de tracking
             onOpenChange(false);
-            setConfirmationData(null);
         }
     };
 
@@ -229,6 +244,24 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
                                                     </div>
                                                 )}
                                             </div>
+                                        </div>
+                                    )}
+                                    {requirement === 'trackingInformation' && (
+                                        <div className="space-y-3">
+                                            <Label htmlFor="trackingInformation" className="text-base font-semibold">
+                                                Información de Tracking del Envío *
+                                            </Label>
+                                            <Textarea
+                                                id="trackingInformation"
+                                                value={trackingInformation}
+                                                onChange={(e) => settrackingInformation(e.target.value)}
+                                                placeholder="Ingrese toda la información relevante del envío: número de tracking, empresa de envío, fecha estimada de entrega, instrucciones especiales, etc."
+                                                rows={4}
+                                                className="resize-none"
+                                            />
+                                            <p className="text-sm text-gray-500">
+                                                Caracteres: {trackingInformation.length} (mínimo 10 requeridos)
+                                            </p>
                                         </div>
                                     )}
                                     <div className="flex justify-end pt-4">

@@ -69,6 +69,33 @@ export class RmaStatusService {
         }
     }
 
+    async markAsInShipping(rmaId, trackingInformation) {
+        try {
+            const response = await this.httpClient.patch(
+                API_ENDPOINTS.RMA.MARK_INSHIPPING(rmaId),
+                { trackingInformation }
+            );
+            return this.handleResponse(response);
+        } catch (error) {
+            throw this.handleError(error);
+        }
+    }
+
+    async markAsComplete(rmaId) {
+        try {
+            console.log("markAsComplete service called:", { rmaId });
+            console.log("Endpoint:", API_ENDPOINTS.RMA.MARK_COMPLETE(rmaId));
+
+            const response = await this.httpClient.patch(
+                API_ENDPOINTS.RMA.MARK_COMPLETE(rmaId)
+            );
+            return this.handleResponse(response);
+        } catch (error) {
+            console.error("Error en markAsComplete service:", error);
+            throw this.handleError(error);
+        }
+    }
+
     handleResponse(response) {
         if (!response.success) {
             throw new Error(response.message || "Failed to update RMA status");
@@ -77,7 +104,18 @@ export class RmaStatusService {
     }
 
     handleError(error) {
-        const message = error.response?.data?.message || error.message || "Error desconocido";
+        console.error("handleError called with:", error);
+
+        // Verificar si es un error de respuesta HTTP
+        if (error.response && error.response.data) {
+            const message = error.response.data.message || "Error del servidor";
+            console.error("Error del servidor:", message);
+            return new Error(message);
+        }
+
+        // Error de red u otro tipo
+        const message = error.message || "Error desconocido";
+        console.error("Error general:", message);
         return new Error(message);
     }
 }

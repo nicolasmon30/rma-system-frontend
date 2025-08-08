@@ -16,6 +16,8 @@ export const API_ENDPOINTS = {
     MARK_EVALUATING: (rmaId) => `/rma/${rmaId}/mark-evaluating`,
     MARK_PAYMENT: (rmaId) => `/rma/${rmaId}/mark-payment`,
     MARK_PROCESSING: (rmaId) => `/rma/${rmaId}/mark-processing`,
+    MARK_INSHIPPING: (rmaId) => `/rma/${rmaId}/mark-inshipping`,
+    MARK_COMPLETE: (rmaId) => `/rma/${rmaId}/mark-complete`
   },
   USERS:{
     LIST: '/users',
