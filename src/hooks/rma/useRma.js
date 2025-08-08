@@ -91,9 +91,29 @@ export function useRma() {
             setLoading(false);
         }
     };
+
+    const markAsPayment = async (rmaId, file) => {
+        try {
+            setLoading(true);
+
+            const formData = new FormData();
+            formData.append('cotizacion', file);
+
+            const updatedRma = await rmaStatusServices.markAsPayment(rmaId, formData);
+
+            updateRmaStatus(rmaId, 'PAYMENT');
+            return updatedRma;
+        } catch (error) {
+            setError(error.message);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchRmas();
     }, []);
 
-    return { rmas, loading, error, addRma, approveRma, rejectRma, fetchRmas, markAsEvaluating };
+    return { rmas, loading, error, addRma, approveRma, rejectRma, fetchRmas, markAsEvaluating, markAsPayment };
 }

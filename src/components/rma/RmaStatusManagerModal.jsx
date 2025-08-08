@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+//import { Textarea } from '@/components/ui/textarea';
 import {
     Dialog,
     DialogContent,
@@ -26,6 +29,8 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
     console.log(rma)
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [nextStatus, setNextStatus] = useState(null);
+    const [quoteFile, setQuoteFile] = useState(null);
+    const [confirmationData, setConfirmationData] = useState({});
 
     const getStatusLabel = (status) => {
         const labels = {
@@ -70,18 +75,52 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
         return IconComponent;
     };
 
+    const getStatusRequirements = (currentStatus, nextStatus) => {
+        switch (currentStatus) {
+            case 'EVALUATING':
+                return nextStatus === 'PAYMENT' ? 'cotizacion' : null;
+            case 'PAYMENT':
+                return nextStatus === 'PROCESSING' ? 'INVOICE' : null;
+            case 'PROCESSING':
+                return nextStatus === 'IN_SHIPPING' ? 'TRACKING' : null;
+            default:
+                return null;
+        }
+    };
+
     const handleStatusAdvance = () => {
         const next = getNextStatus();
         if (!next) return;
+
+        const requirement = getStatusRequirements(rma?.status, next);
+        let data = {};
+        if (requirement === 'cotizacion' && !quoteFile) {
+            alert('Por favor, suba el archivo de cotización antes de continuar.');
+            return;
+        }
+
+        if (requirement === 'cotizacion' && quoteFile) {
+            data.cotizacion = {
+                filename: quoteFile.name,
+                url:quoteFile
+            };
+        }
+
         setNextStatus(next);
+        setConfirmationData(data);
         setShowConfirmation(true);
     };
 
     const handleConfirmStatusChange = async () => {
         if (!nextStatus) return;
-
+        console.log("file", confirmationData.cotizacion)
         try {
-            await onStatusUpdate(rma.id, nextStatus);
+            if (nextStatus === 'PAYMENT' && confirmationData.cotizacion) {
+                await onStatusUpdate(rma.id, nextStatus, confirmationData.cotizacion.url);
+                setQuoteFile(null);
+            } else {
+                await onStatusUpdate(rma.id, nextStatus);
+            }
             // Éxito - puedes añadir una notificación aquí
         } catch (error) {
             console.error('Error updating status:', error);
@@ -90,11 +129,13 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
             setShowConfirmation(false);
             setNextStatus(null);
             onOpenChange(false);
+            setConfirmationData(null);
         }
     };
 
     const nextStatusValue = getNextStatus();
     const StatusIcon = nextStatusValue ? getStatusIcon(nextStatusValue) : ArrowRight;
+    const requirement = nextStatusValue ? getStatusRequirements(rma.status, nextStatusValue) : null;
 
     const getStatusDescription = (status) => {
         const descriptions = {
@@ -161,11 +202,41 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
                                     <p className="text-gray-600">
                                         Avanzar a: {getStatusLabel(nextStatusValue)} - {getStatusDescription(nextStatusValue)}
                                     </p>
+                                    {/* File Upload Requirements */}
+                                    {requirement === 'cotizacion' && (
+                                        <div className="space-y-3">
+                                            <Label className="text-base font-semibold">Subir Cotización *</Label>
+                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
+                                                <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                                                <input
+                                                    type="file"
+                                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                                    onChange={(e) => setQuoteFile(e.target.files?.[0] || null)}
+                                                    className="hidden"
+                                                    id="cotizacion"
+                                                />
+                                                <label htmlFor="cotizacion" className="cursor-pointer">
+                                                    <span className="text-primary hover:text-primary/80 font-medium">
+                                                        Seleccionar archivo de cotización
+                                                    </span>
+                                                    <p className="text-sm text-gray-500 mt-1">PDF, DOC, DOCX, JPG, PNG (máx. 10MB)</p>
+                                                </label>
+                                                {quoteFile && (
+                                                    <div className="mt-3 p-2 bg-green-50 rounded border border-green-200">
+                                                        <p className="text-sm text-green-800 font-medium">
+                                                            ✓ Archivo seleccionado: {quoteFile.name}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="flex justify-end pt-4">
                                         <Button
                                             onClick={handleStatusAdvance}
                                             className="flex items-center gap-2 bg-primary hover:bg-primary/90"
                                             size="lg"
+                                            
                                         >
                                             {(() => {
                                                 const StatusIcon = getStatusIcon(nextStatusValue);
@@ -176,7 +247,10 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
                                     </div>
                                 </CardContent>
                             </Card>
-                        )}
+                        )
+                        }
+
+
 
                         {/* Completed Status */}
                         {rma?.status === 'COMPLETE' && (

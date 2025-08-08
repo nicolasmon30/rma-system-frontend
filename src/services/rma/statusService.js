@@ -40,6 +40,24 @@ export class RmaStatusService {
         }
     }
 
+    async markAsPayment(rmaId, formData) {
+        try {
+            // Usamos formData para enviar el archivo PDF
+            const response = await this.httpClient.patch(
+                `${API_ENDPOINTS.RMA.MARK_PAYMENT(rmaId)}`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
+            );
+            return this.handleResponse(response);
+        } catch (error) {
+            throw this.handleError(error);
+        }
+    }
+
     handleResponse(response) {
         if (!response.success) {
             throw new Error(response.message || "Failed to update RMA status");
