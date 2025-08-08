@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
     REJECT: (rmaId) => `/rma/${rmaId}/reject`,
     MARK_EVALUATING: (rmaId) => `/rma/${rmaId}/mark-evaluating`,
     MARK_PAYMENT: (rmaId) => `/rma/${rmaId}/mark-payment`,
+    MARK_PROCESSING: (rmaId) => `/rma/${rmaId}/mark-processing`,
   },
   USERS:{
     LIST: '/users',

@@ -18,7 +18,7 @@ export function DashboardPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const rmaService = createRmaService(import.meta.env.VITE_API_BASE_URL);
 
-  const { rmas, loading, error, addRma, approveRma, rejectRma, markAsEvaluating, markAsPayment } = useRma()
+  const { rmas, loading, error, addRma, approveRma, rejectRma, markAsEvaluating, markAsPayment, markAsProcessing } = useRma()
 
   const filteredRMAs = rmas.filter((rma) => {
     const matchesSearch = rma.nombreEmpresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -43,6 +43,8 @@ export function DashboardPage() {
         return markAsEvaluating(rmaId);
       case 'PAYMENT':
           return markAsPayment(rmaId, file);
+      case 'PROCESSING':
+          return markAsProcessing(rmaId, file);
       // Puedes añadir más casos para otros estados aquí
       default:
         throw new Error(`Status transition not implemented: ${newStatus}`);

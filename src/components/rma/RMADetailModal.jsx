@@ -14,15 +14,7 @@ export function RMADetailModal({ rma, open, onOpenChange }) {
   if (!rma) return null;
 
   const handleDownload = (file) => {
-    console.log(file)
     window.open(file, '_blank');
-    return
-    const link = document.createElement('a');
-    link.href = file;
-    link.download = file;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const formatDate = (date) => {

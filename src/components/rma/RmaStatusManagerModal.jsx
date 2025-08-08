@@ -80,9 +80,9 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
             case 'EVALUATING':
                 return nextStatus === 'PAYMENT' ? 'cotizacion' : null;
             case 'PAYMENT':
-                return nextStatus === 'PROCESSING' ? 'INVOICE' : null;
+                return nextStatus === 'PROCESSING';
             case 'PROCESSING':
-                return nextStatus === 'IN_SHIPPING' ? 'TRACKING' : null;
+                return nextStatus === 'IN_SHIPPING' ;
             default:
                 return null;
         }
@@ -91,7 +91,7 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
     const handleStatusAdvance = () => {
         const next = getNextStatus();
         if (!next) return;
-
+        console.log(rma?.status)
         const requirement = getStatusRequirements(rma?.status, next);
         let data = {};
         if (requirement === 'cotizacion' && !quoteFile) {
@@ -113,7 +113,7 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
 
     const handleConfirmStatusChange = async () => {
         if (!nextStatus) return;
-        console.log("file", confirmationData.cotizacion)
+        console.log("file", nextStatus)
         try {
             if (nextStatus === 'PAYMENT' && confirmationData.cotizacion) {
                 await onStatusUpdate(rma.id, nextStatus, confirmationData.cotizacion.url);
@@ -236,7 +236,7 @@ export const RmaStatusManagerModal = ({ rma, open, onOpenChange, onStatusUpdate 
                                             onClick={handleStatusAdvance}
                                             className="flex items-center gap-2 bg-primary hover:bg-primary/90"
                                             size="lg"
-                                            
+
                                         >
                                             {(() => {
                                                 const StatusIcon = getStatusIcon(nextStatusValue);
