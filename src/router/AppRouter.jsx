@@ -16,7 +16,7 @@ import { ProfilePage } from '../components/auth/ProfilePage';
 import { PasswordPage } from '../pages/PasswordPage';
 import { AppInitializer } from '../components/layout/AppInitializer';
 import UserPage from '../pages/UserPage';
-import { CountryPage } from '../pages/CountryPAge';
+import { CountryPage } from '../pages/CountryPage';
 
 export function AppRouter() {
   return (
