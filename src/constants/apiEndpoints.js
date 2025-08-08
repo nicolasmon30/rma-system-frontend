@@ -7,6 +7,9 @@ export const API_ENDPOINTS = {
   },
   COUNTRIES: {
     LIST: '/countries',
+    CREATE: '/countries',
+    UPDATE: (countryId) => `/countries/${countryId}`,
+    DELETE: (countryId) => `/countries/${countryId}`
   },
   RMA:{
     CREATE:'/rma',

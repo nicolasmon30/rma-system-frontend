@@ -16,6 +16,7 @@ import { ProfilePage } from '../components/auth/ProfilePage';
 import { PasswordPage } from '../pages/PasswordPage';
 import { AppInitializer } from '../components/layout/AppInitializer';
 import UserPage from '../pages/UserPage';
+import { CountryPage } from '../pages/CountryPAge';
 
 export function AppRouter() {
   return (
@@ -44,6 +45,17 @@ export function AppRouter() {
               <Route path="password" element={<PasswordPage />} />
               
               {/* User Management - Solo ADMIN y SUPERADMIN */}
+              <Route 
+                path='countries' 
+                element={ 
+                  <ProtectedRoute
+                    permission={PERMISSIONS.COUNTRY.READ}
+                    anyRoles={['ADMIN', 'SUPERADMIN']}
+                  >
+                    <CountryPage/>
+                  </ProtectedRoute>
+                 } 
+              />
               <Route 
                 path="users"
                 element={
